@@ -1,0 +1,237 @@
+@using System
+@using System.Configuration
+@using System.Data
+@using System.Data.SqlClient
+@using System.Web
+@using DotNetNuke.Common.Utilities
+@using DotNetNuke.Common
+@using DotNetNuke.Security.Membership
+@using DotNetNuke.Security.Roles
+@using DotNetNuke.Security
+
+@{
+	// Get top level categories (subjects)
+	var db = Database.Open("SiteSqlServer");
+    var conString = Config.GetConnectionString();
+	var selectTopLevelCategoriesSQL = "SELECT * FROM zewds_CLL_TopLevelCategories_Grouped_FlatList WHERE parent=1 ORDER BY name ASC";
+
+    // set isadmin variable if the current user is in the specified groups
+    var iamadmin = 0; // default to false
+    if (DotNetNuke.Security.PortalSecurity.IsInRoles("CLLAdmins") || DotNetNuke.Security.PortalSecurity.IsInRoles("Administrators")) {
+        iamadmin = 1;
+    }
+}
+
+<!--MAIN-->
+
+<script type='text/javascript'>
+// embed inline script to perform filtering
+// getUrlParameter and removeUrlParameter are from cll-catalogue-common loaded by _CatalogueSearchContainer
+    $(document).ready(function(){
+        var isAdmin=0;
+        var filters = {};
+        var filterValue;
+        var qsRegex;
+
+        /*Check if filters are in url*/
+        var dayOfWeekParam=getUrlParameter('dayofweek');
+        if(dayOfWeekParam){
+            $('#dayOfWeek').val(dayOfWeekParam);
+        }
+
+        var timeOfDayParam=getUrlParameter('timeofday');
+        if(timeOfDayParam!=''&&timeOfDayParam!=null){
+            $('#timeOfDay').val(timeOfDayParam);
+        }
+
+        var modeOfDeliveryParam=getUrlParameter('modeofdelivery');
+        if(modeOfDeliveryParam!=''&&modeOfDeliveryParam!=null){
+            $('#modeOfDelivery').val(modeOfDeliveryParam);
+        }
+
+        var creditbearingParam=getUrlParameter('creditbearing');
+        if(creditbearingParam!=''&&creditbearingParam!=null){
+            $('#creditbearing').val(creditbearingParam);
+        }
+
+        var campaignProgrammeParam=getUrlParameter('campaignProgramme');
+        if(campaignProgrammeParam!=''&&campaignProgrammeParam!=null){
+            $('#campaignProgramme').val(campaignProgrammeParam);
+        }
+
+        filterValue = $('#dayOfWeek').val()+$('#timeOfDay').val()+$('#modeOfDelivery').val()+$('#creditbearing').val()+$('#campaignProgramme').val();
+
+        var $grid = $('.category-list').isotope({
+                itemSelector: '.category-container',
+                filter: function() {
+            var $this = $(this);
+            var buttonResult = filterValue ? $this.is( filterValue ) : true;
+            return buttonResult;
+            }
+        });
+
+        $('.category').each(function() {
+            var $this = $(this);       
+            var _href = $this.attr("href"); 
+
+            var dayOfWeekParam = getUrlParameter('dayofweek');
+            //console.log(dayOfWeekParam);
+            if(dayOfWeekParam){
+                _href=removeURLParameter(_href,'dayofweek');
+                $this.attr("href", _href + '&dayofweek='+ dayOfWeekParam);
+                _href = $this.attr("href");
+            }
+
+            var timeOfDayParam = getUrlParameter('timeofday');
+            if(timeOfDayParam){
+                _href=removeURLParameter(_href,'timeofday');
+                $this.attr("href", _href + '&timeofday='+ timeOfDayParam);
+                _href = $this.attr("href");
+            }
+
+            var modeOfDeliveryParam = getUrlParameter('modeofdelivery');
+            if(modeOfDeliveryParam){
+                _href=removeURLParameter(_href,'modeofdelivery');
+                $this.attr("href", _href + '&modeofdelivery='+ modeOfDeliveryParam);
+                _href = $this.attr("href");
+            }
+
+            var creditbearingParam=getUrlParameter('creditbearing');
+            if(creditbearingParam){
+                _href=removeURLParameter(_href,'creditbearing');
+                $this.attr("href", _href + '&creditbearing='+ creditbearingParam);
+                _href = $this.attr("href");
+            }
+
+            var campaignProgrammeParam=getUrlParameter('campaignProgramme');
+            if(campaignProgrammeParam){
+                _href=removeURLParameter(_href,'campaignProgramme');
+                $this.attr("href", _href + '&campaignProgramme='+ campaignProgrammeParam);
+                _href = $this.attr("href");
+            }
+        });
+
+
+
+    $('.filter').on('change',function() {
+        var $this = $('option:selected');
+        var $parent = $(this);
+        var level = $(this).parent().find('select option:selected');
+        // get group key
+        var $buttonGroup = $parent.parents('.select-wrapper');
+        var filterGroup = $buttonGroup.attr('data-filter-group');
+        // set filter for group
+        filters[ filterGroup ] = level.data('value');
+        // combine filters
+        filterValue = concatValues( filters );
+        
+
+        /*add refiner to url for next page*/
+        $('.category').each(function() {
+            var $this = $(this);       
+            var _href = $this.attr("href"); 
+
+            var dayOfWeekParam = getUrlParameter('dayofweek',_href);
+            if(dayOfWeekParam){
+                _href=removeURLParameter(_href,'dayofweek');
+                $this.attr("href", _href);    
+            }
+
+            var timeOfDayParam = getUrlParameter('timeofday',_href);
+            if(timeOfDayParam){
+                _href=removeURLParameter(_href,'timeofday');
+                $this.attr("href", _href);
+            }
+
+            var modeOfDeliveryParam = getUrlParameter('modeofdelivery',_href);
+            if(modeOfDeliveryParam){
+                _href=removeURLParameter(_href,'modeofdelivery');
+                $this.attr("href", _href);
+            }
+
+            var creditbearingParam=getUrlParameter('creditbearing',_href);
+            if(creditbearingParam){
+                _href=removeURLParameter(_href,'creditbearing');
+                $this.attr("href", _href);
+                _href = $this.attr("href");
+            }
+
+            var campaignProgrammeParam=getUrlParameter('campaignProgramme',_href);
+            if(campaignProgrammeParam){
+                _href=removeURLParameter(_href,'campaignProgramme');
+                $this.attr("href", _href);
+                _href = $this.attr("href");
+            }
+
+            if(filters['dayOfWeek']){
+                $this.attr("href", _href + '&dayofweek='+filters['dayOfWeek']);
+                _href = $this.attr("href");
+            }   
+            
+            if(filters['timeOfDay']){
+                $this.attr("href", _href + '&timeofday='+filters['timeOfDay']);
+                _href = $this.attr("href");
+            }
+
+            if(filters['modeOfDelivery']){
+                $this.attr("href", _href + '&modeofdelivery='+filters['modeOfDelivery']);
+                _href = $this.attr("href");
+            }
+
+            if(filters['creditbearing']){
+                $this.attr("href", _href + '&creditbearing='+filters['creditbearing']);
+                _href = $this.attr("href");
+            }
+
+            if(filters['campaignProgramme']){
+                $this.attr("href", _href + '&campaignProgramme='+filters['campaignProgramme']);
+                _href = $this.attr("href");
+            }
+        });
+        
+
+        $grid.isotope();  
+    });
+
+    $('#class-search-button').on('click',function(){
+        search();
+    });
+
+    $("#class-search-input").keyup(function(e){ 
+        var code = e.which; // recommended to use e.which, it's normalized across browsers
+        if(code==13){
+            search();
+        }
+    });
+    
+    });
+
+    // show/hide admin menu based on variable set in main code
+    isAdmin = @iamadmin
+</script>
+
+<!-- this page loads isotope.js and vue.js and scaffolds the search pane -->
+@RenderPage("_CatalogueSearchContainer.cshtml")
+
+
+<!-- query for TOP LEVEL CATEGORIES -->
+<!-- lay out is controlled by the libraries loaded by _CatalogueSearchContainer.cshtml -->
+<div id="category-list-container">
+    <div class="category-list">
+        @foreach(var row in db.Query(selectTopLevelCategoriesSQL)){
+            <div class="col-md-3 col-sm-6 category-container @row.classnames @row.classcodes @row.ProgrammeNames @row.TimeOfDays @row.Days @row.creditbearing @row.ModeOfDelivery @row.CampaignProgrammes">
+                <a class="category" href="/MyCLL/Classes?cid=@row.id&cname=@System.Net.WebUtility.UrlEncode(@row.name)" style="border-bottom:6px solid @row.color">
+                    <div class="category-title" style="color:@row.color">
+                        @Html.Raw(@row.icon)
+                        <h3>
+                            @row.name
+                        </h3>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+
+

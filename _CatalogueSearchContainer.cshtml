@@ -1,0 +1,142 @@
+@using System
+@using System.Configuration
+@using System.Data
+@using System.Data.SqlClient
+@using System.Web
+@using DotNetNuke.Common.Utilities
+@using DotNetNuke.Common
+@using DotNetNuke.Security.Membership
+@using DotNetNuke.Security.Roles
+@using DotNetNuke.Security
+
+@{
+	// Get top level categories (subjects)
+	var db = Database.Open("SiteSqlServer");
+    var conString = Config.GetConnectionString();
+    var campaignProgrammesQuery = "SELECT CampaignName,CampaignCode,CampaignDescription,CampaignClass,CampaignTip FROM EWDS_CLL_Catalogue_Campaigns WHERE CampaignType='PROGRAMME' AND (GETDATE()>CampaignStart) AND (CampaignEnd>GETDATE() OR CampaignEnd IS NULL OR CampaignEnd='') ORDER BY CampaignCode ASC";
+}
+
+<!-- as this is a simple page the CSS and JS is loaded inline. Another option would be to use ClientResourceManager.RegisterScript -->
+<link rel="stylesheet" type="text/css" href="/DesktopModules/RazorModules/RazorHost/Scripts/Assets/css/cll-catalogue.css" />
+<script src="/DesktopModules/RazorModules/RazorHost/Scripts/Assets/js/cll-catalogue-common.js" type="text/javascript"></script>
+<script type="text/javascript">
+$(document).ready(function(){
+    $('.cllHelpTip').tooltip({
+        trigger: 'manual',
+        html: 'true'
+    });
+
+    $('.cllHelpTip').click(function(){    
+        var that = $(this);
+        that.tooltip('toggle');
+        setTimeout(function(){
+            that.tooltip('hide');
+        }, 10000);
+    });
+
+});
+    
+</script>
+
+<div id="catalogue-search-container">
+    <!-- SEARCH BAR -->
+    <div id="search-bar-container">
+        <div id="search-bar-outer">
+            <div id="class-search-bar">
+                <input title="Enter your search term here" type="text" tabindex="8" size="18" maxlength="100" autocomplete="off" id="class-search-input" name="search" placeholder="Search by classcode, name, description or tutor"><i class="fa fa-search" id="class-search-button" aria-hidden="true"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH REFINERS -->
+    <div id="refiners">
+        <fieldset>
+            <span class="dayOfWeekSec">
+                <label for="dayOfWeek">Day of Week</label>
+                <div class="select-wrapper" data-filter-group="dayOfWeek">
+                    <select id="dayOfWeek" class="filter" name="dayOfWeek">
+                        <option data-value="" value="">Any</option>
+                        <option data-value=".Monday" value=".Monday">Monday</option>
+                        <option data-value=".Tuesday" value=".Tuesday">Tuesday</option>
+                        <option data-value=".Wednesday" value=".Wednesday">Wednesday</option>
+                        <option data-value=".Thursday" value=".Thursday">Thursday</option>
+                        <option data-value=".Friday" value=".Friday">Friday</option>
+                        <option data-value=".Saturday" value=".Saturday">Saturday</option>
+                        <option data-value=".Sunday" value=".Sunday">Sunday</option>
+                    </select>
+                </div>
+            </span>
+            <span class="timeOfDaySec">
+                <label for="timeOfDay">Time of Day</label>
+                <div class="select-wrapper" data-filter-group="timeOfDay">
+                    <select id="timeOfDay" class="filter" name="timeOfDay">
+                        <option data-value="" value="">Any</option>
+                        <option data-value=".day" value=".day">Daytime</option>
+                        <option data-value=".evening" value=".evening">Evening</option>
+                        <option style="display:none;" data-value=".online" value=".online">Online (anytime)</option>
+                    </select>
+                </div>
+            </span>
+            <span class="modeOfDeliverySec">
+                <label for="modeOfDelivery">Mode of Delivery</label>
+                <i class="fa cllHelpTip" 
+                    aria-hidden="true" 
+                    title="
+                        <p>Meet Online: Classes are online</p>
+                        <p>Meet Face-to-Face: Classes are in-person</p>
+                        <p>Blended Learning: Classes are a combination of in-person and online</p>
+                        <p>Online (self-paced): Classes are online where you can learn in your own time and schedule</p>                        
+                    " 
+                ></i>
+                <div class="select-wrapper" data-filter-group="modeOfDelivery">
+                    <select id="modeOfDelivery" class="filter" name="modeOfDelivery">
+                        <option data-value="" value="">Any</option>
+                        <option data-value=".meetonline" value=".meetonline">Meet Online</option>
+                        <option data-value=".meetfacetoface" value=".meetfacetoface">Meet Face-to-Face</option>
+                        <option data-value=".blended" value=".blended">Blended Learning</option>
+                        <option data-value=".onlineselfpaced" value=".onlineselfpaced">Online (self-paced)</option>
+                    </select>
+                </div>
+            </span>
+
+            <span class="creditBearingSec">
+                <label for="creditbearing">Credit Bearing</label>
+                <i class="fa cllHelpTip" 
+                    aria-hidden="true" 
+                    title="
+                        <p><a href='https://www.strath.ac.uk/studywithus/centreforlifelonglearning/studentsupport/openstudiescertificate/' target='_blank'>
+                                Interested in studying for credit?  Click here to find out more about our credit-bearing Open Studies Certificate programme.
+                            </a>
+                        </p>                        
+                    " 
+                ></i>
+                <div class="select-wrapper" data-filter-group="creditbearing">
+                    <select id="creditbearing" class="filter" name="creditbearing">
+                        <option data-value="" value="">Any</option>
+                        <option data-value=".creditbearing" value=".creditbearing">Credit Bearing Classes Only</option>
+                    </select>
+                </div>
+            </span>
+            <span class="campaignProgrammeSec">
+                <label for="campaignProgramme">Programme</label>
+                <i class="fa cllHelpTip" 
+                    aria-hidden="true" 
+                    title="
+                        <p><a href='https://www.strath.ac.uk/studywithus/centreforlifelonglearning/shortcourses/' target='_blank'>
+                                Find out more about our Programmes here
+                            </a>
+                        </p>                        
+                    " 
+                ></i>
+                <div class="select-wrapper" data-filter-group="campaignProgramme">
+                    <select id="campaignProgramme" class="filter" name="campaignProgramme">
+                        <option data-value="" value="">Any</option>
+                        @foreach(var row in db.Query(campaignProgrammesQuery)){
+                            <option data-value=".@row.CampaignCode" value=".@row.CampaignCode" title="@row.CampaignDescription">@row.CampaignName</option>
+                        }
+                    </select>
+                </div>
+            </span>
+        </fieldset>
+    </div>
+</div>
